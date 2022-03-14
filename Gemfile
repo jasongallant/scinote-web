@@ -13,7 +13,7 @@ gem 'figaro'
 gem 'pg', '~> 1.1'
 gem 'pg_search' # PostgreSQL full text search
 gem 'psych', '< 4.0'
-gem 'rails', '~> 6.1.1'
+gem 'rails', '~> 6.1.4.7'
 gem 'view_component', require: 'view_component/engine'
 gem 'recaptcha', require: 'recaptcha/rails'
 gem 'sanitize', '~> 5.2'
