@@ -790,7 +790,7 @@ class TeamImporter
       protocol.my_module = my_module unless protocol.my_module_id.nil?
       protocol.skip_user_assignments = true
       protocol.parent_id = @protocol_mappings[protocol.parent_id] unless protocol.parent_id.nil?
-      protocol.save!
+      protocol.save(validate: false)
 
       create_user_assignments(protocol_json['user_assignments'], protocol) if protocol.in_repository?
 

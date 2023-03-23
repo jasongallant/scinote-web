@@ -5,7 +5,7 @@ PAPERCLIP_HASH_SECRET=$(shell openssl rand -base64 128 | tr -d '\n')
 define PRODUCTION_CONFIG_BODY
 SECRET_KEY_BASE=$(shell openssl rand -hex 64)
 PAPERCLIP_HASH_SECRET=$(shell openssl rand -base64 128 | tr -d '\n')
-DATABASE_URL=postgresql://postgres:mysecretpassword@db/scinote_production
+DATABASE_URL=postgresql://postgres:mysecretpassword@db:5433/scinote_production
 ACTIVESTORAGE_SERVICE=local
 ENABLE_RECAPTCHA=false
 ENABLE_USER_CONFIRMATION=false
@@ -23,10 +23,10 @@ heroku:
 	@echo "Set environment variables, DATABASE_URL, RAILS_SERVE_STATIC_FILES, RAKE_ENV, RAILS_ENV, SECRET_KEY_BASE"
 
 docker:
-	@docker-compose build
+	@docker compose build
 
 docker-production:
-	@docker-compose -f docker-compose.production.yml build
+	@docker compose -f docker-compose.production.yml build
 
 config-production:
 ifeq (production.env,$(wildcard production.env))
@@ -38,7 +38,7 @@ db-cli:
 	@$(MAKE) rails cmd="rails db"
 
 db-load-dump:
-	@$(MAKE) rails cmd="rake db:drop db:create;pg_restore --verbose --clean --no-acl --no-owner -h $(DB_IP) -p 5432 -U postgres -d scinote_development latest.dump"
+	@$(MAKE) rails cmd="rake db:drop db:create;pg_restore --verbose --clean --no-acl --no-owner -h $(DB_IP) -p 5433 -U postgres -d scinote_development latest.dump"
 
 database:
 	@$(MAKE) rails cmd="rake db:create db:setup db:migrate"
@@ -46,25 +46,28 @@ database:
 database-production:
 	@$(MAKE) rails-production cmd="bash -c 'while ! nc -z db 5432; do sleep 1; done; rake db:create && rake db:migrate && rake db:seed'"
 
+database-production-clean:
+	@$(MAKE) rails-production cmd="bash -c 'while ! nc -z db 5432; do sleep 1; done; rake db:create && rake db:migrate'"
+
 deface:
 	@$(MAKE) rails cmd="rake deface:precompile"
 
 rails:
-	@docker-compose run --rm web $(cmd)
+	@docker compose run --rm web $(cmd)
 
 rails-production:
-	@docker-compose -f docker-compose.production.yml run --rm web $(cmd)
+	@docker compose -f docker-compose.production.yml run --rm web $(cmd)
 
 run:
 	rm -f tmp/pids/server.pid
-	@docker-compose up -d
+	@docker compose up -d
 	@docker attach scinote_web_development
 
 start:
-	@docker-compose start
+	@docker compose start
 
 stop:
-	@docker-compose stop
+	@docker compose stop
 
 worker:
 	@$(MAKE) rails cmd="rake jobs:work export WORKER=1"
@@ -82,10 +85,10 @@ integration-tests:
 	@$(MAKE) rails cmd="bundle exec cucumber"
 
 tests-ci:
-	@docker-compose run --rm web bash -c "bundle install && yarn install"
-	@docker-compose up -d webpack
-	@docker-compose ps
-	@docker-compose run -e ENABLE_EMAIL_CONFIRMATIONS=false -e MAIL_FROM=MAIL_FROM -e MAIL_REPLYTO=MAIL_REPLYTO -e RAILS_ENV=test -e PAPERCLIP_HASH_SECRET=PAPERCLIP_HASH_SECRET -e MAIL_SERVER_URL=localhost:3000 -e ENABLE_RECAPTCHA=false -e ENABLE_USER_CONFIRMATION=false -e ENABLE_USER_REGISTRATION=true -e CORE_API_RATE_LIMIT=1000000 --rm web bash -c "rake db:create && rake db:migrate && yarn install && bundle exec rspec"
+	@docker compose run --rm web bash -c "bundle install && yarn install"
+	@docker compose up -d webpack
+	@docker compose ps
+	@docker compose run -e ENABLE_EMAIL_CONFIRMATIONS=false -e MAIL_FROM=MAIL_FROM -e MAIL_REPLYTO=MAIL_REPLYTO -e RAILS_ENV=test -e PAPERCLIP_HASH_SECRET=PAPERCLIP_HASH_SECRET -e MAIL_SERVER_URL=localhost:3000 -e ENABLE_RECAPTCHA=false -e ENABLE_USER_CONFIRMATION=false -e ENABLE_USER_REGISTRATION=true -e CORE_API_RATE_LIMIT=1000000 --rm web bash -c "rake db:create && rake db:migrate && yarn install && bundle exec rspec"
 
 console:
 	@$(MAKE) rails cmd="rails console"
@@ -94,10 +97,10 @@ console-production:
 	@$(MAKE) rails-production cmd="rails console"
 
 log:
-	@docker-compose web log
+	@docker compose web log
 
 status:
-	@docker-compose ps
+	@docker compose ps
 
 export:
 	@git checkout-index -a -f --prefix=scinote/
